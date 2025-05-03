@@ -1,0 +1,149 @@
+>> WB2023; 
+rng(25072002);
+>> ps2=randsample(201,60);
+>> ps2=sort(ps2);
+>> Xg=X(ps2,:);
+>> dg=zeros(201,1);
+>> dg(ps2)=1;
+
+>> % Ricodificare la distribuzione della variabile “Safety Index” in 5 classi con percentuali, 8%, 25%, 22%, 25%; 20%;
+
+>> k=5;
+>> pe=zeros(k-1,1);
+>> pe(1)=prctile(Xg(:,3),8);
+>> pe(2)=prctile(Xg(:,3),33);
+>> pe(3)=prctile(Xg(:,3),55);
+>> pe(4)=prctile(Xg(:,3),80);
+>> val1=find(Xg(:,3)<pe(1));
+>> val2=find(Xg(:,3)<pe(2) & Xg(:,3)>pe(1));
+>> val3=find(Xg(:,3)<pe(3) & Xg(:,3)>pe(2));
+>> val4=find(Xg(:,3)<pe(4) & Xg(:,3)>pe(3));
+>> val5=find(Xg(:,3)>pe(4));
+>> Xrc=zeros(60,1);
+>> Xrc(val1)=1;
+>> Xrc(val2)=2;
+>> Xrc(val3)=3;
+>> Xrc(val4)=4;
+>> Xrc(val5)=5;
+>> etichette_classi = {'Class1', 'Class2', 'Class3', 'Class4', 'Class5'};
+>> Xrc = categorical(Xrc, 1:5, etichette_classi);
+
+>> % Ricodificare la distribuzione “Cost of Living Index” in una distribuzione in 4 classi 5%, 45%, 45%, 5%;
+
+>> k=4;
+>> pec=zeros(k-1,1);
+>> pec(1)=prctile(Xg(:,5),5);
+>> pec(2)=prctile(Xg(:,5),50);
+>> pec(3)=prctile(Xg(:,5),95);
+>> valc1=find(Xg(:,5)<pec(1));
+>> valc2=find(Xg(:,5)<pec(2) & Xg(:,5)>pec(1));
+>> valc3=find(Xg(:,5)<pec(3) & Xg(:,5)>pec(2));
+>> valc4=find(Xg(:,5)>pec(3));
+>> Xrcc=zeros(60,1);
+>> Xrcc(valc1)=1;
+>> Xrcc(valc2)=2;
+>> Xrcc(valc3)=3;
+>> Xrcc(valc4)=4;
+>> etichette_classi = {'Class1', 'Class2', 'Class3', 'Class4'};
+>> Xrcc = categorical(Xrcc, 1:4, etichette_classi);
+>> Xg(:, 5) = Xrcc;
+
+>> % Scrivere le distribuzioni semplici delle due variabili in classi;
+% per saftey index:
+
+>> frequenze_riga = countcats(Xrc);
+>> frequenze_col = countcats(Xrcc);
+
+>> % Calcolare il vettore delle medie di “Purchasing Power Index”, “Health Care Index”, “Property Price to Income Ratio”, “Traffic Commute Time Index” condizionatamente alla distribuzione in classi al punto 3;
+
+>> colonne_interesse = [2, 4, 6, 7];
+>> statistiche_condizionate = grpstats(Xg(:, colonne_interesse), Xg(:, 3), 'mean');
+
+>> % Calcolare il vettore delle medie delle variabili da “Property Price to Income Ratio” a “Climate Index”;
+
+>> colonne_interesse = [6:9];
+>> dati_interessanti = Xg(:, colonne_interesse);
+>> vettore_medie = mean(dati_interessanti, 1);
+
+>> % Calcolare la varianza delle variabili “Health Care Index” e “Pollution Index”;
+
+>> colonne_interesse = [4, 8];
+>> dati_interessanti = Xg(:, colonne_interesse);
+>> varianza_colonne_4_8 = var(dati_interessanti);
+
+>> % Calcolare la covarianza e la correlazione tra le variabili “Purchasing Power Index”, “Cost Living Index”, “Pollution Index” e “Climate Index”;
+
+>> colonne_interesse = [2, 5, 8, 9];
+>> dati_interessanti = Xg(:, colonne_interesse);
+>> covarianza_matrice = cov(dati_interessanti);
+>> correlazione_matrice = corr(dati_interessanti);
+
+>> % Calcolare la distribuzione doppia, normalizzata per riga, normalizzata per colonna per le due variabili in classi individuate al punto 3 e 4;
+
+>> colonna_3 = Xg(:, 3);
+>> colonna_5 = Xg(:, 5);
+>> matrice_contingenza = crosstab(colonna_3, colonna_5);
+>> matrice_contingenza_normalizzata_riga= bsxfun(@rdivide, matrice_contingenza, sum(matrice_contingenza, 2));
+>> matrice_contingenza_normalizzata_col= bsxfun(@rdivide, matrice_contingenza, sum(matrice_contingenza, 1));
+
+
+>> % Calcolare il chi-quadrato tra le due distribuzioni in classi individuate ai punti 3 e 4;
+
+>> expected = (frequenze_col' .* frequenze_riga) / sum(frequenze_col);
+>> chi2 = sum(sum((matrice_contingenza - expected) .^ 2 ./ expected));
+
+>> % Standardizzare le 9 variabili del campione di 60 città;
+
+>> Zr=zscore(Xg);
+
+>> % Classificare le unità statistiche utilizzando le 9 variabili con il metodo delle k-medie per diversi valori di k e calcolare i valori di F max;
+
+>> [loop2,U2,f2,iter2]=kmeansVICHI(Zr,2,100);
+>> [loop3,U3,f3,iter3]=kmeansVICHI(Zr,3,100);
+>> [loop4,U4,f4,iter4]=kmeansVICHI(Zr,4,100);
+>> [loop5,U5,f5,iter5]=kmeansVICHI(Zr,5,100);
+>> psF(Zr,U2)
+>> psF(Zr,U3)
+>> psF(Zr,U4)
+>> psF(Zr,U5)
+
+>> % Indicare quale è il numero di cluster ottimale e quali sono le variabili che maggiormente contribuiscono alla classificazione con il valore di F max per variabile;
+
+>> % Calcolare le medie condizionate delle variabili originali per i k cluster individuati al punto 14;
+
+>> A=pinv(UOtt2)*Xg;
+
+>> % Classificare le unità statistiche con con il k-medie richiedendo 10 gruppi, salvare la matrice dei centroidi e riclassificare i gruppi del k-medie con il metodo gerarchico del legame
+medio, del metodo di Ward, del legame singolo e del legame completo utilizzando le variabili standardizzate al punto 12 e usando la distanza euclidea;
+
+>> [XimkM,idkm,Xm10]= imKM(Zr,10);
+>> [H,T]=gerarchica(Zr);
+
+>> % Disegnare lo Scree plot del dendrogramma del legame medio;
+
+D = pdist(Zr, 'euclidean');
+Z = linkage(D, 'average');
+eigenvalues = flipud(Z(end - 10:end, 3));
+figure;
+plot(1:length(eigenvalues), eigenvalues, 'o-');
+grid on;
+
+>> % Calcolare la matrice di correlazione e calcolare le componenti principali. Il numero 
+% delle componenti è scelto con il criterio di Kaiser. Ruotare la matrice dei loadings con % il metodo varimax. Interpretare i risultati;
+
+>> correlazione_matrice = corr(Xg);
+>> [A1,Y1,~,~,E1]=pca(Xg);
+>> num_componenti = sum(E1 > 1);
+>> AC=A1(:, 1:num_componenti);
+>> coeff_rotated = rotatefactors(AC, 'method', 'varimax');
+
+>> % Calcolare sempre sulla matrice di correlazione i fattori dell’analisi fattoriale.
+% Utilizzare il criterio di Kaiser per il calcolo dei fattori. Utilizzare una rotazione
+% non ortogonale quale
+% promax. Verificare se ci sono correlazioni fra fattori maggiori a 0.5;
+
+>> autovalori = eig(correlazione_matrice);
+>> num_fattori_kaiser = sum(autovalori > 1);
+>> [A2, Y2, itr] = AF(Xg, num_fattori_kaiser);
+>> rotated_loadings = rotatefactors(A2, 'Method', 'promax');
+>> correlation_matrix_rotated = corr(A2);
